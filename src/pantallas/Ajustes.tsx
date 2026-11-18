@@ -4,6 +4,15 @@ import { db, exportarTodo, importarTodo, ultimoRespaldo, type Config } from '../
 import { BOLSILLOS, CUENTAS, NOMBRE_BOLSILLO, NOMBRE_CUENTA, sumaPorcentajes, type Origen } from '../logica/dinero'
 import { Monto, confirmar, type Datos } from '../ui'
 
+/** Quita la copia guardada de la app (service worker + caché) y recarga. IndexedDB (tus datos) no se toca. */
+async function actualizarApp() {
+  try {
+    for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister()
+    for (const k of await caches.keys()) await caches.delete(k)
+  } catch { /* sin service worker: igual recarga */ }
+  location.reload()
+}
+
 function Respaldo() {
   const [msg, setMsg] = useState('')
   const ult = ultimoRespaldo()
@@ -86,6 +95,13 @@ export default function Ajustes({ d }: { d: Datos }) {
       </div>
 
       <Respaldo />
+
+      <div className="card">
+        <h2>Versión de la app</h2>
+        <p className="dim">Versión: {__BUILD__}</p>
+        <p className="dim">Si algo nuevo no aparece, toca el botón. Baja la última versión sin borrar tus datos.</p>
+        <button className="full sec" onClick={actualizarApp}>Forzar actualización</button>
+      </div>
 
       <div className="card">
         <h2>Borrar todo</h2>

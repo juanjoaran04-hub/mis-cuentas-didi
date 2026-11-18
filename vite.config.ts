@@ -4,10 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: './', // relativo: funciona luego en GitHub Pages sin saber el nombre del repo
+  define: { __BUILD__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC') },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: { importScripts: ['reload.js'] },
       manifest: {
         name: 'Mis Cuentas DiDi', short_name: 'Mis Cuentas', lang: 'es',
         display: 'standalone', background_color: '#111418', theme_color: '#111418',
