@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { borrarExtra, db, guardarExtra, retirarDidi, trasladar } from '../db'
+import { borrarExtra, db, guardarExtra, moverEntreCuentas, retirarDidi, trasladar } from '../db'
 import { BOLSILLOS, CUENTAS, NOMBRE_BOLSILLO, NOMBRE_CUENTA, cuadre, formatCOP, hoyISO, type Bolsillo, type Cuenta } from '../logica/dinero'
 import { Monto, confirmar, type Datos } from '../ui'
 
@@ -8,6 +8,7 @@ export default function Cuentas({ d }: { d: Datos }) {
   const cu = cuadre(d.cuentas, d.bolsillos, d.config.caja)
   const extras = useLiveQuery(() => db.extras.orderBy('fecha').reverse().limit(8).toArray(), [], [])
   const [ret, setRet] = useState(0)
+  const [mc, setMc] = useState({ de: 'efectivo' as Cuenta, a: 'nequi' as Cuenta, monto: 0, nota: '' })
   const [tr, setTr] = useState({ de: 'moto' as Bolsillo, a: 'metas' as Bolsillo, monto: 0, nota: '' })
   const [ex, setEx] = useState({ tipo: 'familiar' as 'familiar' | 'bono', monto: 0, cuenta: 'nequi' as Cuenta, destino: 'metas' as Bolsillo, nota: '' })
 
@@ -25,6 +26,19 @@ export default function Cuentas({ d }: { d: Datos }) {
         <label>Retirar de DiDi a Nequi</label>
         <div className="row"><Monto valor={ret} onChange={setRet} placeholder="Monto" />
           <button disabled={ret <= 0} onClick={() => { retirarDidi(hoyISO(), ret); setRet(0) }}>Retirar</button></div>
+      </div>
+
+      <div className="card">
+        <h2>Mover entre cuentas</h2>
+        <p className="dim">Ej. consigné plata del Efectivo a Nequi. Cambia las cuentas, no los bolsillos.</p>
+        <div className="row">
+          <select value={mc.de} onChange={(e) => setMc({ ...mc, de: e.target.value as Cuenta })}>{CUENTAS.map((c) => <option key={c} value={c}>De {NOMBRE_CUENTA[c]}</option>)}</select>
+          <select value={mc.a} onChange={(e) => setMc({ ...mc, a: e.target.value as Cuenta })}>{CUENTAS.map((c) => <option key={c} value={c}>A {NOMBRE_CUENTA[c]}</option>)}</select>
+        </div>
+        <label>Monto</label><Monto valor={mc.monto} onChange={(n) => setMc({ ...mc, monto: n })} />
+        <label>Nota (opcional)</label><input value={mc.nota} onChange={(e) => setMc({ ...mc, nota: e.target.value })} />
+        {mc.monto > d.cuentas[mc.de] && <p className="warnc">Ojo: {NOMBRE_CUENTA[mc.de]} tiene {formatCOP(d.cuentas[mc.de])}, menos de lo que vas a mover.</p>}
+        <button className="full" disabled={mc.monto <= 0 || mc.de === mc.a} onClick={() => { moverEntreCuentas(hoyISO(), mc.de, mc.a, mc.monto, mc.nota.trim()); setMc({ ...mc, monto: 0, nota: '' }) }}>Mover</button>
       </div>
 
       <div className="card">

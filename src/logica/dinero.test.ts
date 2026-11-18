@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   asignarMetas, ahorroSemanalMetas, BOLSILLOS, cuadre, diasDeTrabajo, movimientosDia, movimientosExtra, movimientosRetiro,
   movimientosTraslado, parseCOP, proyeccion, recordatorios, repartir, resumenDia, saldos, CFG_MOTO, type Reparto,
-  statsPeriodo, variacion, producidoPorDia, diaRapido,
+  statsPeriodo, variacion, producidoPorDia, diaRapido, movimientosEntreCuentas,
 } from './dinero'
 
 const cfg: Reparto = { porcentajes: { metas: 40, moto: 20, personal: 25, imprevistos: 15 }, topeImprevistos: 100000 }
@@ -81,6 +81,20 @@ describe('extras, traslados y retiros', () => {
   })
 })
 
+describe('mover entre cuentas', () => {
+  it('cambia las cuentas y NO toca los bolsillos', () => {
+    const ini = { nequi: 5000, efectivo: 50000, didi: 0 }
+    const inicialB = { ...ceroB, personal: 55000 }
+    const { cuentas, bolsillos } = saldos(movimientosEntreCuentas('2026-01-01', 'efectivo', 'nequi', 20000, 'consigné'), ini, inicialB)
+    expect(cuentas).toEqual({ nequi: 25000, efectivo: 30000, didi: 0 })
+    expect(bolsillos).toEqual(inicialB)
+    expect(cuadre(cuentas, bolsillos, 0).cuadra).toBe(true)
+  })
+  it('sin nota genera una descripción', () => {
+    expect(movimientosEntreCuentas('2026-01-01', 'efectivo', 'nequi', 1, '')[0].nota).toBe('Efectivo → Nequi')
+  })
+})
+
 describe('cuadre', () => {
   it('caja de cambio no cuenta como disponible', () => {
     expect(cuadre({ nequi: 0, efectivo: 50000, didi: 0 }, { ...ceroB, personal: 30000 }, 20000).cuadra).toBe(true)
@@ -148,36 +162,44 @@ describe('resúmenes', () => {
 describe('registro rápido', () => {
   const completo = { efectivo: 150000, app: 0, gastos: [{ categoriaId: 1, monto: 30000, origen: 'operativo' as const }] }
   it('reparte igual que un día completo con el mismo limpio', () => {
-    const r = resumenDia(diaRapido('2026-01-01', 120000, 'efectivo'), cfg, 0)
+    const r = resumenDia(diaRapido('2026-01-01', { efectivo: 120000 }), cfg, 0)
     expect(r.reparto).toEqual(resumenDia(completo, cfg, 0).reparto)
     expect(r.limpio).toBe(120000)
   })
-  it('Efectivo: entra a Efectivo; Nequi: entra a Nequi; ambos cuadran', () => {
-    for (const c of ['efectivo', 'nequi'] as const) {
-      const d = diaRapido('2026-01-01', 120000, c)
+  it('repartido entre varias cuentas: cada una recibe lo suyo, el reparto usa la suma y cuadra', () => {
+    const d = diaRapido('2026-01-01', { efectivo: 40000, nequi: 30000, didi: 20000 })
+    const { cuentas, bolsillos } = saldos(movimientosDia('2026-01-01', d, cfg, 0, 'd'), cero, ceroB)
+    expect(cuentas).toEqual({ efectivo: 40000, nequi: 30000, didi: 20000 })
+    expect(suma(bolsillos)).toBe(90000)
+    expect(resumenDia(d, cfg, 0).reparto).toEqual(repartir(90000, cfg, 0))
+    expect(cuadre(cuentas, bolsillos, 0).cuadra).toBe(true)
+  })
+  it('Efectivo: entra a Efectivo; Nequi: entra a Nequi; DiDi: queda pendiente; todos cuadran', () => {
+    for (const c of ['efectivo', 'nequi', 'didi'] as const) {
+      const d = diaRapido('2026-01-01', { [c]: 120000 })
       const { cuentas, bolsillos } = saldos(movimientosDia('2026-01-01', d, cfg, 0, 'd'), cero, ceroB)
       expect(cuentas[c]).toBe(120000)
       expect(cuadre(cuentas, bolsillos, 0).cuadra).toBe(true)
     }
   })
   it('respeta el tope de Imprevistos', () => {
-    const r = resumenDia(diaRapido('2026-01-01', 100000, 'nequi'), cfg, 100000)
+    const r = resumenDia(diaRapido('2026-01-01', { nequi: 100000 }), cfg, 100000)
     expect(r.reparto.imprevistos).toBe(0); expect(r.reparto.metas).toBe(55000)
   })
   it('queda marcado rápido y guarda viajes/horas', () => {
-    const d = diaRapido('2026-01-01', 50000, 'efectivo', 8, 6)
+    const d = diaRapido('2026-01-01', { efectivo: 50000 }, 8, 6)
     expect(d.rapido).toBe(true); expect(d.viajes).toBe(8); expect(d.horas).toBe(6); expect(d.gastos).toEqual([])
   })
   it('no usa los días rápidos para el % operativo (sin falso 0%)', () => {
     const normal = { fecha: '2026-01-01', efectivo: 100000, app: 0, viajes: 10, horas: 5, gastos: [{ categoriaId: 1, monto: 20000, origen: 'operativo' as const }] }
-    const s = statsPeriodo([normal, diaRapido('2026-01-02', 100000, 'efectivo', 10, 5)])
+    const s = statsPeriodo([normal, diaRapido('2026-01-02', { efectivo: 100000 }, 10, 5)])
     expect(s.pctOperativo).toBe(20); expect(s.rapidos).toBe(1); expect(s.producido).toBe(200000)
   })
   it('solo días rápidos: % operativo no disponible', () => {
-    expect(statsPeriodo([diaRapido('2026-01-02', 100000, 'nequi')]).pctOperativo).toBeNull()
+    expect(statsPeriodo([diaRapido('2026-01-02', { nequi: 100000 })]).pctOperativo).toBeNull()
   })
   it('el producido por día cuenta lo que entró a Nequi', () => {
-    expect(producidoPorDia([diaRapido('2026-01-02', 7000, 'nequi')], '2026-01-02', 1)[0].producido).toBe(7000)
+    expect(producidoPorDia([diaRapido('2026-01-02', { nequi: 7000 })],'2026-01-02', 1)[0].producido).toBe(7000)
   })
 })
 

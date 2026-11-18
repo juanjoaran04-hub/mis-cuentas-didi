@@ -39,9 +39,12 @@ export function repartir(limpio: number, cfg: Reparto, saldoImprevistos: number)
 export interface DiaIn { efectivo: number; app: number; nequi?: number; gastos: Gasto[] }
 export const producidoDia = (d: { efectivo: number; app: number; nequi?: number }) => d.efectivo + d.app + (d.nequi ?? 0)
 
-/** Registro rápido: solo el LIMPIO del día. Entra a Efectivo o Nequi y se reparte con la misma lógica que el registro completo. */
-export function diaRapido(fecha: string, limpio: number, cuenta: 'efectivo' | 'nequi', viajes = 0, horas = 0) {
-  return { fecha, efectivo: cuenta === 'efectivo' ? limpio : 0, app: 0, nequi: cuenta === 'nequi' ? limpio : 0, viajes, horas, gastos: [] as Gasto[], rapido: true as const }
+/**
+ * Registro rápido: solo el LIMPIO del día, repartido entre cuentas (la suma es el limpio).
+ * Pendiente DiDi se guarda en `app` (es la plata que queda en la app), igual que el registro completo.
+ */
+export function diaRapido(fecha: string, cuentas: Partial<Record<Cuenta, number>>, viajes = 0, horas = 0) {
+  return { fecha, efectivo: cuentas.efectivo ?? 0, app: cuentas.didi ?? 0, nequi: cuentas.nequi ?? 0, viajes, horas, gastos: [] as Gasto[], rapido: true as const }
 }
 
 export function resumenDia(d: DiaIn, cfg: Reparto, saldoImprevistos: number) {
@@ -80,6 +83,15 @@ export function movimientosTraslado(fecha: string, de: Bolsillo, a: Bolsillo, mo
   return [
     { fecha, tipo: 'traslado', bolsillo: de, monto: -monto, nota },
     { fecha, tipo: 'traslado', bolsillo: a, monto, nota },
+  ]
+}
+
+/** Mover plata entre cuentas reales (ej. consigné de Efectivo a Nequi). No toca los bolsillos. */
+export function movimientosEntreCuentas(fecha: string, de: Cuenta, a: Cuenta, monto: number, nota: string): Mov[] {
+  const n = nota || `${NOMBRE_CUENTA[de]} → ${NOMBRE_CUENTA[a]}`
+  return [
+    { fecha, tipo: 'entre-cuentas', cuenta: de, monto: -monto, nota: n },
+    { fecha, tipo: 'entre-cuentas', cuenta: a, monto, nota: n },
   ]
 }
 

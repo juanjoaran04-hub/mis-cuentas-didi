@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import {
-  CFG_MOTO, movimientosDia, movimientosExtra, movimientosRetiro, movimientosTraslado, saldos,
+  CFG_MOTO, movimientosDia, movimientosEntreCuentas, movimientosExtra, movimientosRetiro, movimientosTraslado, saldos,
   type Bolsillo, type CfgMoto, type Cuenta, type Gasto, type Mant, type Meta, type Mov, type Origen,
 } from './logica/dinero'
 
@@ -31,6 +31,8 @@ class MiDB extends Dexie {
   constructor() {
     super('mis-cuentas-didi')
     this.version(1).stores({ config: 'id', categorias: '++id', dias: 'fecha', extras: '++id', movs: '++id,fecha,ref', metas: '++id', mants: '++id' })
+    // v2: Cuentas ordena los ingresos extra por fecha y faltaba el índice (la pestaña se rompía).
+    this.version(2).stores({ extras: '++id,fecha' })
   }
 }
 export const db = new MiDB()
@@ -115,6 +117,7 @@ export async function importarTodo(texto: string) {
 }
 
 export const trasladar = (fecha: string, de: Bolsillo, a: Bolsillo, monto: number, nota: string) => db.movs.bulkAdd(movimientosTraslado(fecha, de, a, monto, nota))
+export const moverEntreCuentas = (fecha: string, de: Cuenta, a: Cuenta, monto: number, nota: string) => db.movs.bulkAdd(movimientosEntreCuentas(fecha, de, a, monto, nota))
 export const retirarDidi = (fecha: string, monto: number) => db.movs.bulkAdd(movimientosRetiro(fecha, monto))
 
 /** Gasto de mantenimiento: se guarda en el historial y, si se quiere, sale del bolsillo Moto (y del Efectivo). */

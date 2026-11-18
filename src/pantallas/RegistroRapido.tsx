@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { db, guardarDia } from '../db'
-import { BOLSILLOS, NOMBRE_BOLSILLO, diaRapido, formatCOP, hoyISO, resumenDia } from '../logica/dinero'
+import { BOLSILLOS, NOMBRE_BOLSILLO, NOMBRE_CUENTA, diaRapido, formatCOP, hoyISO, resumenDia } from '../logica/dinero'
 import { Monto, confirmar, type Datos } from '../ui'
 
 const num = (s: string) => Number(s.replace(',', '.').replace(/[^\d.]/g, '')) || 0
 
 export default function RegistroRapido({ d, volver }: { d: Datos; volver: () => void }) {
-  const [f, setF] = useState({ fecha: hoyISO(), limpio: 0, cuenta: 'efectivo' as 'efectivo' | 'nequi', viajes: 0, horas: 0 })
-  const dia = diaRapido(f.fecha, f.limpio, f.cuenta, f.viajes, f.horas)
+  const [f, setF] = useState({ fecha: hoyISO(), efectivo: 0, nequi: 0, didi: 0, viajes: 0, horas: 0 })
+  const dia = diaRapido(f.fecha, { efectivo: f.efectivo, nequi: f.nequi, didi: f.didi }, f.viajes, f.horas)
   const r = resumenDia(dia, d.config, d.bolsillos.imprevistos)
 
   const guardar = async () => {
@@ -23,9 +23,10 @@ export default function RegistroRapido({ d, volver }: { d: Datos; volver: () => 
       <p className="dim">Escribe solo lo LIMPIO del día: ya restada gasolina, comida, etc.</p>
       <div className="card">
         <label>Fecha</label><input type="date" value={f.fecha} max={hoyISO()} onChange={(e) => e.target.value && setF({ ...f, fecha: e.target.value })} />
-        <label>Dinero limpio del día</label><Monto valor={f.limpio} autoFocus onChange={(n) => setF({ ...f, limpio: n })} />
-        <label>¿En qué cuenta quedó?</label>
-        <select value={f.cuenta} onChange={(e) => setF({ ...f, cuenta: e.target.value as 'efectivo' | 'nequi' })}><option value="efectivo">Efectivo</option><option value="nequi">Nequi</option></select>
+        <p className="dim" style={{ marginBottom: 0 }}>¿Dónde quedó lo limpio? Puedes repartirlo entre varias cuentas.</p>
+        {(['efectivo', 'nequi', 'didi'] as const).map((c) => <div key={c}><label>{NOMBRE_CUENTA[c]}</label>
+          <Monto valor={f[c]} autoFocus={c === 'efectivo'} onChange={(n) => setF({ ...f, [c]: n })} /></div>)}
+        <p className="big">Limpio del día: {formatCOP(r.limpio)}</p>
         <div className="grid2">
           <div><label>Viajes (opcional)</label><input inputMode="numeric" value={f.viajes || ''} onChange={(e) => setF({ ...f, viajes: num(e.target.value) })} /></div>
           <div><label>Horas (opcional)</label><input inputMode="decimal" value={f.horas || ''} onChange={(e) => setF({ ...f, horas: num(e.target.value) })} /></div>
@@ -40,7 +41,7 @@ export default function RegistroRapido({ d, volver }: { d: Datos; volver: () => 
 
       <div className="row">
         <button className="sec" onClick={volver}>Cancelar</button>
-        <button style={{ flex: 2 }} disabled={f.limpio <= 0} onClick={guardar}>Guardar</button>
+        <button style={{ flex: 2 }} disabled={r.limpio <= 0} onClick={guardar}>Guardar</button>
       </div>
     </>
   )
