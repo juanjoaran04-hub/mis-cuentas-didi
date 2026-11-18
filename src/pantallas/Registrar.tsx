@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { borrarDia, db, guardarDia, type Dia } from '../db'
-import { BOLSILLOS, NOMBRE_BOLSILLO, formatCOP, hoyISO, resumenDia, type Gasto, type Origen } from '../logica/dinero'
+import { BOLSILLOS, NOMBRE_BOLSILLO, formatCOP, hoyISO, producidoDia, resumenDia, type Gasto, type Origen } from '../logica/dinero'
 import { Monto, confirmar, type Datos } from '../ui'
 
 const nuevoDia = (fecha: string): Dia => ({ fecha, efectivo: 0, app: 0, viajes: 0, horas: 0, km: 0, gastos: [] })
@@ -13,7 +13,8 @@ export default function Registrar({ d }: { d: Datos }) {
   const recientes = useLiveQuery(() => db.dias.orderBy('fecha').reverse().limit(10).toArray(), [], [])
 
   // Al cambiar la fecha, carga el día si ya existía (para editarlo).
-  useEffect(() => { db.dias.get(dia.fecha).then((x) => { if (x) setDia(x) }) }, [dia.fecha])
+  // Un día rápido no se edita aquí (no tiene desglose): se borra y se vuelve a registrar.
+  useEffect(() => { db.dias.get(dia.fecha).then((x) => { if (x && !x.rapido) setDia(x) }) }, [dia.fecha])
 
   const saldoImp = d.bolsillos.imprevistos
   const r = resumenDia(dia, d.config, saldoImp)
@@ -84,9 +85,9 @@ export default function Registrar({ d }: { d: Datos }) {
         {recientes.length === 0 && <p className="dim">Aún no hay días.</p>}
         {recientes.map((x) => (
           <div className="item" key={x.fecha}>
-            <span>{x.fecha}<br /><span className="dim">{x.viajes} viajes · gastos {formatCOP(x.gastos.reduce((a, g) => a + g.monto, 0))}{x.gastos[0] ? ' (' + catNombre(x.gastos[0].categoriaId) + '…)' : ''}</span></span>
-            <span style={{ textAlign: 'right' }}><b>{formatCOP(x.efectivo + x.app)}</b><br />
-              <button className="sm sec" onClick={() => setDia(x)}>Editar</button>{' '}
+            <span>{x.fecha}{x.rapido && <b className="warnc"> ⚡ rápido</b>}<br /><span className="dim">{x.viajes} viajes · gastos {formatCOP(x.gastos.reduce((a, g) => a + g.monto, 0))}{x.gastos[0] ? ' (' + catNombre(x.gastos[0].categoriaId) + '…)' : ''}</span></span>
+            <span style={{ textAlign: 'right' }}><b>{formatCOP(producidoDia(x))}</b><br />
+              {!x.rapido && <button className="sm sec" onClick={() => setDia(x)}>Editar</button>}{' '}
               <button className="sm bad" onClick={() => confirmar('¿Borrar el día ' + x.fecha + '? Se devuelve todo lo que repartió.') && borrarDia(x.fecha)}>Borrar</button></span>
           </div>
         ))}

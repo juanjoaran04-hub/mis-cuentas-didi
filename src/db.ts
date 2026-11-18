@@ -16,7 +16,7 @@ export interface Config {
   moto: CfgMoto
 }
 export interface Categoria { id?: number; nombre: string; origen: Origen }
-export interface Dia { fecha: string; efectivo: number; app: number; viajes: number; horas: number; km?: number; gastos: Gasto[] }
+export interface Dia { fecha: string; efectivo: number; app: number; nequi?: number; viajes: number; horas: number; km?: number; gastos: Gasto[]; rapido?: boolean }
 export interface Extra { id?: number; fecha: string; tipo: 'familiar' | 'bono'; monto: number; cuenta: Cuenta; destino: Bolsillo; nota: string }
 export type MovDB = Mov & { id?: number }
 

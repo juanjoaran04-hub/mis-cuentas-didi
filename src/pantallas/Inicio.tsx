@@ -28,19 +28,19 @@ function Periodo({ titulo, a, b }: { titulo: string; a: ReturnType<typeof statsP
   return (
     <div className="card">
       <h2>{titulo}</h2>
-      <div className="dim">{a.dias} días · {a.horas} h · {a.viajes} viajes</div>
+      <div className="dim">{a.dias} días{a.rapidos > 0 && ` (${a.rapidos} rápido${a.rapidos > 1 ? 's' : ''})`} · {a.horas} h · {a.viajes} viajes</div>
       <div className="item"><span>Producido</span><span><b>{formatCOP(a.producido)}</b> {flecha(variacion(a.producido, b.producido))}</span></div>
       <div className="item"><span>Gastos</span><span><b>{formatCOP(a.gastos)}</b> {flecha(variacion(a.gastos, b.gastos), false)}</span></div>
       <div className="item"><span>Neto</span><span><b>{formatCOP(a.neto)}</b> {flecha(variacion(a.neto, b.neto))}</span></div>
       <div className="item"><span>Ganancia por hora</span><b>{cop(a.porHora && Math.round(a.porHora))}</b></div>
       <div className="item"><span>Ganancia por viaje</span><b>{cop(a.porViaje && Math.round(a.porViaje))}</b></div>
       <div className="item"><span>Gasto operativo</span><b>{a.pctOperativo === null ? '—' : a.pctOperativo.toFixed(1) + '%'}</b></div>
-      <div className="dim">Flechas: contra el periodo anterior equivalente.</div>
+      <div className="dim">Flechas: contra el periodo anterior equivalente.{a.rapidos > 0 && ' El % operativo no cuenta los días rápidos (no traen gastos).'}</div>
     </div>
   )
 }
 
-export default function Inicio({ d, ir }: { d: Datos; ir: (t: 'registrar' | 'ajustes') => void }) {
+export default function Inicio({ d, ir }: { d: Datos; ir: (t: 'registrar' | 'rapido' | 'ajustes') => void }) {
   const { filas } = useMetas(d)
   const { rec } = useRecordatorios(d)
   const dias = useLiveQuery(() => db.dias.toArray(), [], [])
@@ -61,6 +61,7 @@ export default function Inicio({ d, ir }: { d: Datos; ir: (t: 'registrar' | 'aju
     <>
       <h1>Mis Cuentas</h1>
       <button className="full" style={{ minHeight: 64, fontSize: 20, marginBottom: 12 }} onClick={() => ir('registrar')}>{hoyHecho ? '📝 Editar el día de hoy' : '📝 Registrar día'}</button>
+      <button className="full sec" style={{ minHeight: 64, fontSize: 20, marginTop: 0, marginBottom: 12 }} onClick={() => ir('rapido')}>⚡ Registro rápido</button>
       {pedirRespaldo && <div className="alert warn">💾 {diasSinRespaldo === null ? 'Nunca has hecho un respaldo.' : `Hace ${diasSinRespaldo} días no haces respaldo.`} <button className="sm" onClick={() => ir('ajustes')}>Hacer respaldo</button></div>}
       {!cu.cuadra && <div className="alert bad">⚠ Cuentas y bolsillos no cuadran: {formatCOP(cu.diferencia)}. Mira la pestaña Cuentas.</div>}
       {alertas.map((r) => <div key={r.nombre} className={'alert ' + (r.estado === 'vencido' ? 'bad' : 'warn')}>🏍️ {r.nombre}: {r.estado === 'vencido' ? 'ya toca' : 'pronto'}</div>)}

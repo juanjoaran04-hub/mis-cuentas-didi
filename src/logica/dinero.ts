@@ -35,9 +35,17 @@ export function repartir(limpio: number, cfg: Reparto, saldoImprevistos: number)
   return r
 }
 
-export interface DiaIn { efectivo: number; app: number; gastos: Gasto[] }
+/** nequi = plata que entró directo a Nequi (solo lo usa el registro rápido). */
+export interface DiaIn { efectivo: number; app: number; nequi?: number; gastos: Gasto[] }
+export const producidoDia = (d: { efectivo: number; app: number; nequi?: number }) => d.efectivo + d.app + (d.nequi ?? 0)
+
+/** Registro rápido: solo el LIMPIO del día. Entra a Efectivo o Nequi y se reparte con la misma lógica que el registro completo. */
+export function diaRapido(fecha: string, limpio: number, cuenta: 'efectivo' | 'nequi', viajes = 0, horas = 0) {
+  return { fecha, efectivo: cuenta === 'efectivo' ? limpio : 0, app: 0, nequi: cuenta === 'nequi' ? limpio : 0, viajes, horas, gastos: [] as Gasto[], rapido: true as const }
+}
+
 export function resumenDia(d: DiaIn, cfg: Reparto, saldoImprevistos: number) {
-  const producido = d.efectivo + d.app
+  const producido = producidoDia(d)
   const total = d.gastos.reduce((a, g) => a + g.monto, 0)
   const operativos = d.gastos.filter((g) => g.origen === 'operativo').reduce((a, g) => a + g.monto, 0)
   const limpio = producido - operativos
@@ -50,6 +58,7 @@ export function movimientosDia(fecha: string, d: DiaIn, cfg: Reparto, saldoImpre
   const nota = 'Día ' + fecha
   if (d.efectivo) m.push({ fecha, tipo: 'ingreso', cuenta: 'efectivo', monto: d.efectivo, nota, ref })
   if (d.app) m.push({ fecha, tipo: 'ingreso', cuenta: 'didi', monto: d.app, nota, ref })
+  if (d.nequi) m.push({ fecha, tipo: 'ingreso', cuenta: 'nequi', monto: d.nequi, nota, ref })
   for (const g of d.gastos) {
     if (!g.monto) continue
     m.push({ fecha, tipo: 'gasto', cuenta: g.cuenta ?? 'efectivo', monto: -g.monto, nota, ref })
@@ -100,20 +109,23 @@ export function cuadre(cuentas: Record<Cuenta, number>, bolsillos: Record<Bolsil
 }
 
 /* ---------- Resúmenes ---------- */
-export interface DiaStat { fecha: string; efectivo: number; app: number; viajes: number; horas: number; gastos: Gasto[] }
+export interface DiaStat { fecha: string; efectivo: number; app: number; nequi?: number; viajes: number; horas: number; gastos: Gasto[]; rapido?: boolean }
 
 export function statsPeriodo(dias: DiaStat[]) {
-  const producido = dias.reduce((a, d) => a + d.efectivo + d.app, 0)
+  const producido = dias.reduce((a, d) => a + producidoDia(d), 0)
   const gastos = dias.reduce((a, d) => a + d.gastos.reduce((s, g) => s + g.monto, 0), 0)
-  const operativos = dias.reduce((a, d) => a + d.gastos.filter((g) => g.origen === 'operativo').reduce((s, g) => s + g.monto, 0), 0)
+  // Los días rápidos ya vienen sin gastos operativos: no cuentan para este %, si no saldría un 0% falso.
+  const completos = dias.filter((d) => !d.rapido)
+  const producidoCompleto = completos.reduce((a, d) => a + producidoDia(d), 0)
+  const operativos = completos.reduce((a, d) => a + d.gastos.filter((g) => g.origen === 'operativo').reduce((s, g) => s + g.monto, 0), 0)
   const horas = dias.reduce((a, d) => a + d.horas, 0)
   const viajes = dias.reduce((a, d) => a + d.viajes, 0)
   const neto = producido - gastos
   return {
-    dias: dias.length, producido, gastos, neto, horas, viajes,
+    dias: dias.length, rapidos: dias.length - completos.length, producido, gastos, neto, horas, viajes,
     porHora: horas > 0 ? neto / horas : null,
     porViaje: viajes > 0 ? neto / viajes : null,
-    pctOperativo: producido > 0 ? (operativos / producido) * 100 : null,
+    pctOperativo: producidoCompleto > 0 ? (operativos / producidoCompleto) * 100 : null,
   }
 }
 
@@ -127,7 +139,7 @@ export function producidoPorDia(dias: DiaStat[], hoy: string, n: number) {
   return Array.from({ length: n }, (_, i) => {
     const f = sumarDias(hoy, i - (n - 1))
     const d = dias.find((x) => x.fecha === f)
-    return { fecha: f, producido: d ? d.efectivo + d.app : 0 }
+    return { fecha: f, producido: d ? producidoDia(d) : 0 }
   })
 }
 
