@@ -49,6 +49,15 @@ describe('resumenDia y movimientos', () => {
     expect(cuadre(cuentas, bolsillos, 0).cuadra).toBe(true)
     expect(bolsillos.moto).toBe(24000 - 10000) // 20% de 120000 menos el gasto del bolsillo
   })
+  it('gasto sale de la cuenta elegida (Nequi) y efectivo por defecto', () => {
+    const d = { efectivo: 0, app: 0, gastos: [
+      { categoriaId: 1, monto: 5000, origen: 'operativo' as const, cuenta: 'nequi' as const },
+      { categoriaId: 1, monto: 2000, origen: 'operativo' as const },
+    ] }
+    const { cuentas, bolsillos } = saldos(movimientosDia('2026-01-01', d, cfg, 0, 'd'), { nequi: 10000, efectivo: 10000, didi: 0 }, { ...ceroB, personal: 20000 })
+    expect(cuentas.nequi).toBe(5000); expect(cuentas.efectivo).toBe(8000)
+    expect(cuadre(cuentas, bolsillos, 0).cuadra).toBe(true) // la pérdida del día la cubre Imprevistos
+  })
   it('día en pérdida también cuadra', () => {
     const d = { efectivo: 10000, app: 0, gastos: [{ categoriaId: 1, monto: 30000, origen: 'operativo' as const }] }
     const { cuentas, bolsillos } = saldos(movimientosDia('2026-01-01', d, cfg, 0, 'd'), cero, ceroB)

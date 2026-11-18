@@ -8,7 +8,7 @@ export const NOMBRE_BOLSILLO: Record<Bolsillo, string> = { metas: 'Metas', moto:
 export const NOMBRE_CUENTA: Record<Cuenta, string> = { nequi: 'Nequi', efectivo: 'Efectivo', didi: 'Pendiente DiDi' }
 
 export type Origen = 'operativo' | Bolsillo
-export interface Gasto { categoriaId: number; monto: number; origen: Origen }
+export interface Gasto { categoriaId: number; monto: number; origen: Origen; cuenta?: 'efectivo' | 'nequi' } // cuenta ausente = efectivo (días viejos)
 export interface Reparto { porcentajes: Record<Bolsillo, number>; topeImprevistos: number }
 export interface Mov { fecha: string; tipo: string; cuenta?: Cuenta; bolsillo?: Bolsillo; monto: number; nota?: string; ref?: string }
 
@@ -44,7 +44,7 @@ export function resumenDia(d: DiaIn, cfg: Reparto, saldoImprevistos: number) {
   return { producido, totalGastos: total, operativos, limpio, reparto: repartir(limpio, cfg, saldoImprevistos) }
 }
 
-/** Movimientos que genera un día. Los gastos se pagan en Efectivo (limitación conocida). */
+/** Movimientos que genera un día. Cada gasto sale de Efectivo (por defecto) o Nequi. */
 export function movimientosDia(fecha: string, d: DiaIn, cfg: Reparto, saldoImprevistos: number, ref: string): Mov[] {
   const m: Mov[] = []
   const nota = 'Día ' + fecha
@@ -52,7 +52,7 @@ export function movimientosDia(fecha: string, d: DiaIn, cfg: Reparto, saldoImpre
   if (d.app) m.push({ fecha, tipo: 'ingreso', cuenta: 'didi', monto: d.app, nota, ref })
   for (const g of d.gastos) {
     if (!g.monto) continue
-    m.push({ fecha, tipo: 'gasto', cuenta: 'efectivo', monto: -g.monto, nota, ref })
+    m.push({ fecha, tipo: 'gasto', cuenta: g.cuenta ?? 'efectivo', monto: -g.monto, nota, ref })
     if (g.origen !== 'operativo') m.push({ fecha, tipo: 'gasto', bolsillo: g.origen, monto: -g.monto, nota, ref })
   }
   const { reparto } = resumenDia(d, cfg, saldoImprevistos)

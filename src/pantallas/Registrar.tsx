@@ -19,7 +19,7 @@ export default function Registrar({ d }: { d: Datos }) {
   const r = resumenDia(dia, d.config, saldoImp)
   const catNombre = (id: number) => cats.find((c) => c.id === id)?.nombre ?? '?'
   const setGasto = (i: number, g: Gasto) => setDia({ ...dia, gastos: dia.gastos.map((x, j) => (j === i ? g : x)) })
-  const agregarGasto = () => cats[0] && setDia({ ...dia, gastos: [...dia.gastos, { categoriaId: cats[0].id!, monto: 0, origen: cats[0].origen }] })
+  const agregarGasto = () => cats[0] && setDia({ ...dia, gastos: [...dia.gastos, { categoriaId: cats[0].id!, monto: 0, origen: cats[0].origen, cuenta: 'efectivo' }] })
 
   const guardar = async () => {
     await guardarDia({ ...dia, gastos: dia.gastos.filter((g) => g.monto > 0) })
@@ -54,6 +54,11 @@ export default function Registrar({ d }: { d: Datos }) {
             </div>
             <div className="row" style={{ marginTop: 4 }}>
               <Monto valor={g.monto} placeholder="Monto" onChange={(n) => setGasto(i, { ...g, monto: n })} />
+              <select value={g.cuenta ?? 'efectivo'} onChange={(e) => setGasto(i, { ...g, cuenta: e.target.value as 'efectivo' | 'nequi' })}>
+                <option value="efectivo">Paga Efectivo</option><option value="nequi">Paga Nequi</option>
+              </select>
+            </div>
+            <div style={{ marginTop: 4 }}>
               <select value={g.origen} onChange={(e) => setGasto(i, { ...g, origen: e.target.value as Origen })}>
                 <option value="operativo">Operativo</option>
                 {BOLSILLOS.map((b) => <option key={b} value={b}>Sale de {NOMBRE_BOLSILLO[b]}</option>)}
