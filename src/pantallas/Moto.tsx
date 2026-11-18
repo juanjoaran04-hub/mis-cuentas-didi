@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { borrarMant, db, guardarMant } from '../db'
 import { formatCOP, hoyISO, recordatorios, type Estado, type TipoMant } from '../logica/dinero'
+import { X } from 'lucide-react'
 import { Monto, confirmar, type Datos } from '../ui'
 
-const ICO: Record<Estado, string> = { ok: '🟢', pronto: '🟡', vencido: '🔴', sinregistro: '⚪' }
+const COLOR: Record<Estado, string> = { ok: 'var(--pos)', pronto: 'var(--warn)', vencido: 'var(--neg)', sinregistro: 'var(--dim)' }
+const Punto = ({ e }: { e: Estado }) => <span aria-hidden style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 99, background: COLOR[e], marginRight: 8 }} />
 export const useRecordatorios = (d: Datos) => {
   const mants = useLiveQuery(() => db.mants.toArray(), [], [])
   return { mants, rec: recordatorios(d.config.kmActual, d.config.moto, mants) }
@@ -26,7 +28,7 @@ export default function Moto({ d }: { d: Datos }) {
       <div className="card">
         <h2>Recordatorios</h2>
         {rec.map((r) => (
-          <div className="item" key={r.nombre}><span>{ICO[r.estado]} {r.nombre}<br /><span className="dim">{r.ultimoKm === null ? 'Sin registro: anota el último cambio abajo' : `Último: ${r.ultimoKm.toLocaleString('es-CO')} km`}</span></span>
+          <div className="item" key={r.nombre}><span><Punto e={r.estado} />{r.nombre}<br /><span className="dim">{r.ultimoKm === null ? 'Sin registro: anota el último cambio abajo' : `Último: ${r.ultimoKm.toLocaleString('es-CO')} km`}</span></span>
             <span style={{ textAlign: 'right' }}>{r.faltan === null ? '' : r.faltan <= 0 ? <b className="neg">Pasado {Math.abs(r.faltan).toLocaleString('es-CO')} km</b> : <>Faltan <b>{r.faltan.toLocaleString('es-CO')}</b> km</>}</span></div>
         ))}
       </div>
@@ -48,7 +50,7 @@ export default function Moto({ d }: { d: Datos }) {
         {mants.length === 0 && <p className="dim">Aún no hay mantenimientos.</p>}
         {[...mants].sort((a, b) => b.fecha.localeCompare(a.fecha)).map((x) => (
           <div className="item" key={x.id}><span>{x.fecha} · {x.tipo}<br /><span className="dim">{x.km.toLocaleString('es-CO')} km</span></span>
-            <span><b>{formatCOP(x.costo)}</b> <button className="sm bad" onClick={() => confirmar('¿Borrar? Si descontó plata, se devuelve.') && borrarMant(x.id!)}>✕</button></span></div>
+            <span><b className="neg">{formatCOP(x.costo)}</b> <button className="sm bad" aria-label="Borrar mantenimiento" onClick={() => confirmar('¿Borrar? Si descontó plata, se devuelve.') && borrarMant(x.id!)}><X size={16} aria-hidden /></button></span></div>
         ))}
       </div>
     </>

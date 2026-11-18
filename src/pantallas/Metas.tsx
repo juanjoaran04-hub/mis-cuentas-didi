@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { CircleCheck, Trash2 } from 'lucide-react'
 import { comprarMeta, db } from '../db'
 import { ahorroSemanalMetas, asignarMetas, diasDeTrabajo, formatCOP, hoyISO, metasPorDiaTrabajado, proyeccion } from '../logica/dinero'
 import { Barra, Monto, confirmar, type Datos } from '../ui'
@@ -22,20 +23,27 @@ export default function Metas({ d }: { d: Datos }) {
   return (
     <>
       <h1>Metas</h1>
-      <p className="dim">Ahorro promedio a Metas (últimas 4 semanas): <b>{formatCOP(semanal)}</b> por semana. Saldo en el bolsillo: {formatCOP(d.bolsillos.metas)}.</p>
-      {filas.map(({ meta, acumulado, falta, proy, dias }) => (
-        <div className="card" key={meta.id}>
-          <div className="row"><h2>#{meta.prioridad} {meta.nombre}</h2><b style={{ flex: 'none' }}>{formatCOP(meta.monto)}</b></div>
-          <Barra pct={(acumulado / meta.monto) * 100} />
-          <div className="dim">Llevas {formatCOP(acumulado)} · Faltan {formatCOP(falta)}{dias ? ` · ≈ ${dias} días de trabajo` : ''}</div>
-          <div>{falta === 0 ? <b className="okc">🎉 ¡Ya alcanza! Puedes comprarla.</b> : proy.fecha ? <>Fecha estimada: <b>{proy.fecha}</b></> : <span className="warnc">Sin ahorro reciente: no se puede estimar.</span>}</div>
-          {meta.fechaDeseada && <div className={proy.fecha && proy.fecha > meta.fechaDeseada ? 'warnc' : 'dim'}>Fecha deseada: {meta.fechaDeseada}{proy.fecha && proy.fecha > meta.fechaDeseada ? ' (vas tarde)' : ''}</div>}
-          <div className="row" style={{ marginTop: 8 }}>
-            {falta === 0 && <button onClick={() => confirmar(`¿Ya compraste "${meta.nombre}"? Se descuenta ${formatCOP(meta.monto)} del bolsillo Metas y del Efectivo.`) && comprarMeta(meta, 'efectivo', hoyISO())}>Ya la compré</button>}
-            <button className="sm bad" onClick={() => confirmar('¿Borrar la meta?') && db.metas.delete(meta.id!)}>Borrar</button>
+      <p className="dim">Ahorro promedio a Metas (últimas 4 semanas): <b className="pos">{formatCOP(semanal)}</b> por semana. Saldo en el bolsillo: <b className={d.bolsillos.metas < 0 ? 'neg' : 'pos'}>{formatCOP(d.bolsillos.metas)}</b>.</p>
+      {filas.map(({ meta, acumulado, falta, proy, dias }) => {
+        const pct = Math.min(100, Math.floor((acumulado / meta.monto) * 100))
+        return (
+          <div className="card" key={meta.id}>
+            <div className="meta-top"><h2 style={{ margin: 0 }}>#{meta.prioridad} {meta.nombre}</h2><span className="pct">{pct}%</span></div>
+            <Barra pct={(acumulado / meta.monto) * 100} />
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <span>Llevas <b className="pos">{formatCOP(acumulado)}</b></span>
+              <span style={{ textAlign: 'right' }}>de <b>{formatCOP(meta.monto)}</b></span>
+            </div>
+            <div className="dim" style={{ marginTop: 6 }}>Faltan <b className="neg">{formatCOP(falta)}</b>{dias ? ` · ≈ ${dias} días de trabajo` : ''}</div>
+            <div style={{ marginTop: 4 }}>{falta === 0 ? <b className="pos"><CircleCheck size={18} style={{ verticalAlign: -3 }} aria-hidden /> ¡Ya alcanza! Puedes comprarla.</b> : proy.fecha ? <>Fecha estimada: <b>{proy.fecha}</b></> : <span className="warnc">Sin ahorro reciente: no se puede estimar.</span>}</div>
+            {meta.fechaDeseada && <div className={proy.fecha && proy.fecha > meta.fechaDeseada ? 'warnc' : 'dim'}>Fecha deseada: {meta.fechaDeseada}{proy.fecha && proy.fecha > meta.fechaDeseada ? ' (vas tarde)' : ''}</div>}
+            <div className="row" style={{ marginTop: 10 }}>
+              {falta === 0 && <button onClick={() => confirmar(`¿Ya compraste "${meta.nombre}"? Se descuenta ${formatCOP(meta.monto)} del bolsillo Metas y del Efectivo.`) && comprarMeta(meta, 'efectivo', hoyISO())}>Ya la compré</button>}
+              <button className="sm bad" onClick={() => confirmar('¿Borrar la meta?') && db.metas.delete(meta.id!)}><Trash2 size={16} aria-hidden />Borrar</button>
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
       {logradas.length > 0 && <p className="dim">Logradas: {logradas.map((m) => m.nombre).join(', ')}</p>}
 
       <div className="card">

@@ -34,14 +34,14 @@ export default function Setup({ config }: { config: Config }) {
         <h2>2. ¿Cuánto hay en cada bolsillo?</h2>
         <p className="dim">Los bolsillos dividen esa plata. Si no sabes, déjalos en 0 y pon todo en Personal.</p>
         {BOLSILLOS.map((k: Bolsillo) => <div key={k}><label>{NOMBRE_BOLSILLO[k]}</label><Monto valor={c.inicialBolsillos[k]} onChange={(n) => setC({ ...c, inicialBolsillos: { ...c.inicialBolsillos, [k]: n } })} /></div>)}
-        <p className={dif === 0 ? 'okc' : 'warnc'}>{dif === 0 ? '✔ Cuentas y bolsillos cuadran' : `Diferencia: ${formatCOP(dif)} (cuentas − bolsillos − caja). Puedes guardar igual, pero la app te la va a mostrar.`}</p>
+        <p className={dif === 0 ? 'okc' : 'warnc'}>{dif === 0 ? 'Cuentas y bolsillos cuadran' : `Diferencia: ${formatCOP(dif)} (cuentas − bolsillos − caja). Puedes guardar igual, pero la app te la va a mostrar.`}</p>
       </div>
 
       <div className="card">
         <h2>3. ¿Cómo repartir lo limpio de cada día?</h2>
         {BOLSILLOS.map((k) => <div key={k}><label>{NOMBRE_BOLSILLO[k]} (%)</label>
           <input inputMode="numeric" value={c.porcentajes[k]} onChange={(e) => setC({ ...c, porcentajes: { ...c.porcentajes, [k]: Number(e.target.value.replace(/\D/g, '')) || 0 } })} /></div>)}
-        <p className={ok ? 'okc' : 'neg'}>Suma: {sumaP}% {ok ? '✔' : '(tiene que dar 100)'}</p>
+        <p className={ok ? 'okc' : 'neg'}>Suma: {sumaP}% {ok ? '(bien)' : '(tiene que dar 100)'}</p>
         <label>Tope de Imprevistos (cuando se llena, su % pasa a Metas)</label>
         <Monto valor={c.topeImprevistos} onChange={(n) => setC({ ...c, topeImprevistos: n })} />
       </div>

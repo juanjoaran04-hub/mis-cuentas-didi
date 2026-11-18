@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { borrarExtra, db, guardarExtra, moverEntreCuentas, retirarDidi, trasladar } from '../db'
 import { BOLSILLOS, CUENTAS, NOMBRE_BOLSILLO, NOMBRE_CUENTA, cuadre, formatCOP, hoyISO, type Bolsillo, type Cuenta } from '../logica/dinero'
+import { CircleAlert, CircleCheck, Wallet, X } from 'lucide-react'
+import { Cop } from '../tema'
 import { Monto, confirmar, type Datos } from '../ui'
 
 export default function Cuentas({ d }: { d: Datos }) {
@@ -16,13 +18,14 @@ export default function Cuentas({ d }: { d: Datos }) {
     <>
       <h1>Cuentas y bolsillos</h1>
       <div className={'alert ' + (cu.cuadra ? 'ok' : 'bad')}>
-        {cu.cuadra ? '✔ Todo cuadra' : `⚠ No cuadra. Diferencia: ${formatCOP(cu.diferencia)}`}
-        <div className="dim">Cuentas {formatCOP(cu.totalCuentas)} = Bolsillos {formatCOP(cu.totalBolsillos)} + Caja de cambio {formatCOP(d.config.caja)}</div>
+        {cu.cuadra ? <CircleCheck size={20} aria-hidden /> : <CircleAlert size={20} aria-hidden />}
+        <div><b>{cu.cuadra ? 'Todo cuadra' : `No cuadra. Diferencia: ${formatCOP(cu.diferencia)}`}</b>
+        <div className="dim">Cuentas {formatCOP(cu.totalCuentas)} = Bolsillos {formatCOP(cu.totalBolsillos)} + Caja de cambio {formatCOP(d.config.caja)}</div></div>
       </div>
 
       <div className="card">
-        <h2>Cuentas reales</h2>
-        {CUENTAS.map((k) => <div className="item" key={k}><span>{NOMBRE_CUENTA[k]}</span><b>{formatCOP(d.cuentas[k])}</b></div>)}
+        <h2><Wallet size={20} aria-hidden />Cuentas reales</h2>
+        {CUENTAS.map((k) => <div className="item" key={k}><span>{NOMBRE_CUENTA[k]}</span><b><Cop n={d.cuentas[k]} /></b></div>)}
         <label>Retirar de DiDi a Nequi</label>
         <div className="row"><Monto valor={ret} onChange={setRet} placeholder="Monto" />
           <button disabled={ret <= 0} onClick={() => { retirarDidi(hoyISO(), ret); setRet(0) }}>Retirar</button></div>
@@ -65,7 +68,7 @@ export default function Cuentas({ d }: { d: Datos }) {
         <button className="full" disabled={ex.monto <= 0} onClick={() => { guardarExtra({ ...ex, fecha: hoyISO() }); setEx({ ...ex, monto: 0, nota: '' }) }}>Guardar ingreso</button>
         {extras.map((e) => (
           <div className="item" key={e.id}><span>{e.fecha} · {e.tipo === 'bono' ? 'Bono' : 'Familia'} → {NOMBRE_BOLSILLO[e.destino]}<br /><span className="dim">{e.nota}</span></span>
-            <span><b>{formatCOP(e.monto)}</b> <button className="sm bad" onClick={() => confirmar('¿Borrar este ingreso?') && borrarExtra(e.id!)}>✕</button></span></div>
+            <span><b className="pos">{formatCOP(e.monto)}</b> <button className="sm bad" aria-label="Borrar ingreso" onClick={() => confirmar('¿Borrar este ingreso?') && borrarExtra(e.id!)}><X size={16} aria-hidden /></button></span></div>
         ))}
       </div>
     </>

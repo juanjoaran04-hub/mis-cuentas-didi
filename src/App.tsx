@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Bike, House, PenLine, Settings, Target, Wallet } from 'lucide-react'
 import { iniciar } from './db'
 import { useDatos } from './ui'
 import Setup from './pantallas/Setup'
@@ -10,7 +11,7 @@ import Metas from './pantallas/Metas'
 import Moto from './pantallas/Moto'
 import Ajustes from './pantallas/Ajustes'
 
-const TABS = [['inicio', '🏠', 'Inicio'], ['registrar', '📝', 'Registrar'], ['cuentas', '💰', 'Cuentas'], ['metas', '🎯', 'Metas'], ['moto', '🏍️', 'Moto'], ['ajustes', '⚙️', 'Ajustes']] as const
+const TABS = [['inicio', House, 'Inicio'], ['registrar', PenLine, 'Registrar'], ['cuentas', Wallet, 'Cuentas'], ['metas', Target, 'Metas'], ['moto', Bike, 'Moto'], ['ajustes', Settings, 'Ajustes']] as const
 type Tab = (typeof TABS)[number][0] | 'rapido' // 'rapido' no tiene botón abajo: se abre desde Inicio
 
 export default function App() {
@@ -33,7 +34,7 @@ export default function App() {
         {tab === 'moto' && <Moto d={datos} />}
         {tab === 'ajustes' && <Ajustes d={datos} />}
       </main>
-      <nav>{TABS.map(([k, ico, nom]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><div style={{ fontSize: 22 }}>{ico}</div>{nom}</button>)}</nav>
+      <nav>{TABS.map(([k, Ico, nom]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><Ico size={24} aria-hidden />{nom}</button>)}</nav>
     </>
   )
 }

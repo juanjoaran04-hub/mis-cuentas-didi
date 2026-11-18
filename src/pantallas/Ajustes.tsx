@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { X } from 'lucide-react'
 import { db, exportarTodo, importarTodo, ultimoRespaldo, type Config } from '../db'
 import { BOLSILLOS, CUENTAS, NOMBRE_BOLSILLO, NOMBRE_CUENTA, sumaPorcentajes, type Origen } from '../logica/dinero'
 import { Monto, confirmar, type Datos } from '../ui'
@@ -23,12 +24,12 @@ function Respaldo() {
     a.download = `respaldo-mis-cuentas-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(a.href)
-    setMsg('✔ Respaldo descargado. Guárdalo en Drive o mándatelo por WhatsApp.')
+    setMsg('Respaldo descargado. Guárdalo en Drive o mándatelo por WhatsApp.')
   }
   const importar = async (f?: File) => {
     if (!f) return
     if (!confirmar('Importar REEMPLAZA todo lo que hay ahora en esta app por lo del archivo. ¿Seguir?')) return
-    try { await importarTodo(await f.text()); setMsg('✔ Datos importados.') } catch (e) { setMsg('⚠ ' + (e as Error).message) }
+    try { await importarTodo(await f.text()); setMsg('Datos importados.') } catch (e) { setMsg('No se pudo: ' + (e as Error).message) }
   }
   return (
     <div className="card">
@@ -78,7 +79,7 @@ export default function Ajustes({ d }: { d: Datos }) {
             <select value={x.origen} onChange={(e) => db.categorias.update(x.id!, { origen: e.target.value as Origen })}>
               <option value="operativo">Operativo</option>{BOLSILLOS.map((b) => <option key={b} value={b}>De {NOMBRE_BOLSILLO[b]}</option>)}
             </select>
-            <button className="sm bad" onClick={() => confirmar('¿Borrar la categoría "' + x.nombre + '"? Los días ya guardados no cambian.') && db.categorias.delete(x.id!)}>✕</button>
+            <button className="sm bad" aria-label="Borrar categoría" onClick={() => confirmar('¿Borrar la categoría "' + x.nombre + '"? Los días ya guardados no cambian.') && db.categorias.delete(x.id!)}><X size={16} aria-hidden /></button>
           </div>
         ))}
         <label>Nueva categoría</label>

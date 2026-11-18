@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { borrarDia, db, guardarDia, type Dia } from '../db'
 import { BOLSILLOS, NOMBRE_BOLSILLO, formatCOP, hoyISO, producidoDia, resumenDia, type Gasto, type Origen } from '../logica/dinero'
+import { X } from 'lucide-react'
+import { Cop, ICONO_BOLSILLO } from '../tema'
 import { Monto, confirmar, type Datos } from '../ui'
 
 const nuevoDia = (fecha: string): Dia => ({ fecha, efectivo: 0, app: 0, viajes: 0, horas: 0, km: 0, gastos: [] })
@@ -40,7 +42,7 @@ export default function Registrar({ d }: { d: Datos }) {
         </div>
         <label>Km recorridos hoy (opcional, suma al kilometraje de la moto)</label>
         <input inputMode="numeric" value={dia.km || ''} onChange={(e) => setDia({ ...dia, km: num(e.target.value) })} />
-        <p className="big">Producido: {formatCOP(r.producido)}</p>
+        <p className="big pos">Producido: {formatCOP(r.producido)}</p>
       </div>
 
       <div className="card">
@@ -51,7 +53,7 @@ export default function Registrar({ d }: { d: Datos }) {
               <select value={g.categoriaId} onChange={(e) => { const c = cats.find((x) => x.id === Number(e.target.value))!; setGasto(i, { ...g, categoriaId: c.id!, origen: c.origen }) }}>
                 {cats.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
-              <button className="bad sm" onClick={() => setDia({ ...dia, gastos: dia.gastos.filter((_, j) => j !== i) })}>✕</button>
+              <button className="bad sm" aria-label="Quitar gasto" onClick={() => setDia({ ...dia, gastos: dia.gastos.filter((_, j) => j !== i) })}><X size={18} aria-hidden /></button>
             </div>
             <div className="row" style={{ marginTop: 4 }}>
               <Monto valor={g.monto} placeholder="Monto" onChange={(n) => setGasto(i, { ...g, monto: n })} />
@@ -72,10 +74,10 @@ export default function Registrar({ d }: { d: Datos }) {
 
       <div className="card">
         <h2>Así se reparte</h2>
-        <div className="item"><span>Producido</span><b>{formatCOP(r.producido)}</b></div>
-        <div className="item"><span>− Gastos operativos</span><b>{formatCOP(r.operativos)}</b></div>
-        <div className="item"><span>Limpio</span><b className={r.limpio < 0 ? 'neg' : ''}>{formatCOP(r.limpio)}</b></div>
-        {BOLSILLOS.map((b) => <div className="item dim" key={b}><span>→ {NOMBRE_BOLSILLO[b]}</span><span>{formatCOP(r.reparto[b])}</span></div>)}
+        <div className="item"><span>Producido</span><b><Cop n={r.producido} /></b></div>
+        <div className="item"><span>Gastos operativos</span><b><Cop n={r.operativos} gasto /></b></div>
+        <div className="item"><span>Limpio</span><b><Cop n={r.limpio} /></b></div>
+        {BOLSILLOS.map((b) => { const I = ICONO_BOLSILLO[b]; return <div className="item" key={b}><span className="row" style={{ justifyContent: 'flex-start' }}><I size={18} style={{ color: `var(--c-${b})`, flex: 'none' }} aria-hidden />{NOMBRE_BOLSILLO[b]}</span><b><Cop n={r.reparto[b]} /></b></div> })}
         {r.limpio < 0 && <p className="warnc">Día en pérdida: lo cubre Imprevistos.</p>}
       </div>
       <button className="full" disabled={r.producido === 0 && dia.gastos.length === 0} onClick={guardar}>Guardar día</button>
@@ -85,8 +87,8 @@ export default function Registrar({ d }: { d: Datos }) {
         {recientes.length === 0 && <p className="dim">Aún no hay días.</p>}
         {recientes.map((x) => (
           <div className="item" key={x.fecha}>
-            <span>{x.fecha}{x.rapido && <b className="warnc"> ⚡ rápido</b>}<br /><span className="dim">{x.viajes} viajes · gastos {formatCOP(x.gastos.reduce((a, g) => a + g.monto, 0))}{x.gastos[0] ? ' (' + catNombre(x.gastos[0].categoriaId) + '…)' : ''}</span></span>
-            <span style={{ textAlign: 'right' }}><b>{formatCOP(producidoDia(x))}</b><br />
+            <span>{x.fecha}{x.rapido && <b className="warnc"> · rápido</b>}<br /><span className="dim">{x.viajes} viajes · gastos <span className="neg">{formatCOP(x.gastos.reduce((a, g) => a + g.monto, 0))}</span>{x.gastos[0] ? ' (' + catNombre(x.gastos[0].categoriaId) + '…)' : ''}</span></span>
+            <span style={{ textAlign: 'right' }}><b className="pos">{formatCOP(producidoDia(x))}</b><br />
               {!x.rapido && <button className="sm sec" onClick={() => setDia(x)}>Editar</button>}{' '}
               <button className="sm bad" onClick={() => confirmar('¿Borrar el día ' + x.fecha + '? Se devuelve todo lo que repartió.') && borrarDia(x.fecha)}>Borrar</button></span>
           </div>
