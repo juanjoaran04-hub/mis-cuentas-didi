@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ajustarCuenta, borrarExtra, cambiarBase, db, guardarExtra, moverEntreCuentas, retirarDidi, trasladar } from '../db'
+import { ajustarCuenta, borrarExtra, db, guardarBase, guardarExtra, moverEntreCuentas, retirarDidi, trasladar } from '../db'
 import { BOLSILLOS, CUENTAS, NOMBRE_BOLSILLO, NOMBRE_CUENTA, cuadre, formatCOP, hoyISO, type Bolsillo, type Cuenta } from '../logica/dinero'
 import { CircleAlert, CircleCheck, Wallet, X } from 'lucide-react'
 import { Cop } from '../tema'
 import { Monto, confirmar, type Datos } from '../ui'
 
 export default function Cuentas({ d }: { d: Datos }) {
-  const cu = cuadre(d.cuentas, d.bolsillos, d.config.caja)
+  const cu = cuadre(d.cuentas, d.bolsillos, 0) // la base de vuelto es plata tuya dentro del efectivo
   const extras = useLiveQuery(() => db.extras.orderBy('fecha').reverse().limit(8).toArray(), [], [])
   const [ret, setRet] = useState(0)
-  const [base, setBase] = useState({ monto: d.config.caja, bolsillo: 'personal' as Bolsillo })
+  const [base, setBase] = useState(d.config.caja)
   const [aj, setAj] = useState({ cuenta: 'efectivo' as Cuenta, real: -1, bolsillo: 'personal' as Bolsillo }) // real -1 = sin escribir todavía
   const ajReal = aj.real < 0 ? d.cuentas[aj.cuenta] : aj.real
   const ajDif = ajReal - d.cuentas[aj.cuenta]
@@ -24,7 +24,7 @@ export default function Cuentas({ d }: { d: Datos }) {
       <div className={'alert ' + (cu.cuadra ? 'ok' : 'bad')}>
         {cu.cuadra ? <CircleCheck size={20} aria-hidden /> : <CircleAlert size={20} aria-hidden />}
         <div><b>{cu.cuadra ? 'Todo cuadra' : `No cuadra. Diferencia: ${formatCOP(cu.diferencia)}`}</b>
-        <div className="dim">Cuentas {formatCOP(cu.totalCuentas)} = Bolsillos {formatCOP(cu.totalBolsillos)} + Caja de cambio {formatCOP(d.config.caja)}</div></div>
+        <div className="dim">Cuentas {formatCOP(cu.totalCuentas)} = Bolsillos {formatCOP(cu.totalBolsillos)}</div></div>
       </div>
 
       <div className="card">
@@ -37,12 +37,12 @@ export default function Cuentas({ d }: { d: Datos }) {
 
       <div className="card">
         <h2>Base de vuelto</h2>
-        <p className="dim">Plata en efectivo que llevas para dar vueltos. No es tuya: no cuenta en tus bolsillos ni en lo que ganaste. Efectivo ahora: <b>{formatCOP(d.cuentas.efectivo)}</b> · base: <b>{formatCOP(d.config.caja)}</b> · tuyo: <b><Cop n={d.cuentas.efectivo - d.config.caja} /></b></p>
-        <label>Base de vuelto (cuánto llevas)</label><Monto valor={base.monto} onChange={(n) => setBase({ ...base, monto: n })} />
-        <label>La plata de la base sale de (o vuelve a)</label>
-        <select value={base.bolsillo} onChange={(e) => setBase({ ...base, bolsillo: e.target.value as Bolsillo })}>{BOLSILLOS.map((b) => <option key={b} value={b}>{NOMBRE_BOLSILLO[b]}</option>)}</select>
-        {base.monto !== d.config.caja && <p className="dim">{base.monto > d.config.caja ? `Se separan ${formatCOP(base.monto - d.config.caja)} de ${NOMBRE_BOLSILLO[base.bolsillo]}.` : `Se devuelven ${formatCOP(d.config.caja - base.monto)} a ${NOMBRE_BOLSILLO[base.bolsillo]}.`}</p>}
-        <button className="full" disabled={base.monto === d.config.caja} onClick={() => cambiarBase(hoyISO(), base.monto, base.bolsillo)}>Guardar base</button>
+        <p className="dim">Es parte de tu efectivo que llevas para dar vueltos. Sigue siendo tuya: no se resta de ningún bolsillo ni de tus cuentas. Solo sirve para saber cuánto de tu efectivo es libre.</p>
+        <div className="item"><span>Efectivo ahora</span><b>{formatCOP(d.cuentas.efectivo)}</b></div>
+        <div className="item"><span>Base de vuelto</span><b>{formatCOP(d.config.caja)}</b></div>
+        <div className="item"><span>Efectivo libre (sin la base)</span><b><Cop n={d.cuentas.efectivo - d.config.caja} /></b></div>
+        <label>Base con la que sales</label><Monto valor={base} onChange={setBase} />
+        <button className="full" disabled={base === d.config.caja} onClick={() => guardarBase(base)}>Guardar base</button>
       </div>
 
       <div className="card">

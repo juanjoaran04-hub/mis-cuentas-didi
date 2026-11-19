@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import {
-  CFG_MOTO, movimientosAjuste, movimientosBase, movimientosDia, movimientosEntreCuentas, movimientosGastoSuelto, movimientosExtra, movimientosRetiro, movimientosTraslado, saldos,
+  CFG_MOTO, baseARestituir, cuadre, hoyISO, movimientosAjuste, movimientosDia, movimientosEntreCuentas, movimientosGastoSuelto, movimientosExtra, movimientosRetiro, movimientosTraslado, saldos,
   type Bolsillo, type CfgMoto, type Cuenta, type Gasto, type Mant, type Meta, type Mov, type Origen,
 } from './logica/dinero'
 
@@ -14,6 +14,7 @@ export interface Config {
   inicialBolsillos: Record<Bolsillo, number>
   kmActual: number
   moto: CfgMoto
+  baseModelo?: number // 2 = la base de vuelto no resta de bolsillos; ausente = versión anterior (se migra en iniciar)
 }
 export interface Categoria { id?: number; nombre: string; origen: Origen }
 export interface Dia { fecha: string; efectivo: number; app: number; nequi?: number; viajes: number; horas: number; km?: number; gastos: Gasto[]; rapido?: boolean }
@@ -41,7 +42,7 @@ export const configPorDefecto = (): Config => ({
   id: 1, listo: false,
   porcentajes: { metas: 40, moto: 20, personal: 25, imprevistos: 15 }, topeImprevistos: 100000, caja: 0,
   inicialCuentas: { nequi: 0, efectivo: 0, didi: 0 }, inicialBolsillos: { metas: 0, moto: 0, personal: 0, imprevistos: 0 },
-  kmActual: 0, moto: CFG_MOTO,
+  kmActual: 0, moto: CFG_MOTO, baseModelo: 2,
 })
 
 export const categoriasIniciales: Categoria[] = [
@@ -52,6 +53,17 @@ export const categoriasIniciales: Categoria[] = [
 export async function iniciar() {
   if (!(await db.config.get(1))) await db.config.put(configPorDefecto())
   if ((await db.categorias.count()) === 0) await db.categorias.bulkAdd(categoriasIniciales)
+  await migrarBase()
+}
+
+/** Una sola vez: la versión anterior restaba la base de Personal; si es exactamente eso lo que falta, se repone. */
+async function migrarBase() {
+  const cfg = (await db.config.get(1))!
+  if (cfg.baseModelo === 2) return
+  const { cuentas, bolsillos } = saldos(await db.movs.toArray(), cfg.inicialCuentas, cfg.inicialBolsillos)
+  const reponer = baseARestituir(cuadre(cuentas, bolsillos, 0).diferencia, cfg.caja)
+  if (reponer) await db.movs.add({ fecha: hoyISO(), tipo: 'base', bolsillo: 'personal', monto: reponer, nota: 'Base de vuelto: ya no se resta de tus bolsillos' })
+  await db.config.update(1, { baseModelo: 2 })
 }
 
 /** Saldo actual del bolsillo Imprevistos sin contar los movimientos de `ignorarRef` (para re-guardar un día). */
@@ -124,14 +136,8 @@ export const borrarPorRef = (ref: string) => db.movs.where('ref').equals(ref).de
 export const ajustarCuenta = (fecha: string, cuenta: Cuenta, saldoActual: number, saldoReal: number, bolsillo: Bolsillo, nota: string) =>
   db.movs.bulkAdd(movimientosAjuste(fecha, cuenta, saldoActual, saldoReal, bolsillo, nota))
 
-/** Cambia la base de vuelto y mueve la diferencia desde/hacia un bolsillo, en una sola operación. */
-export async function cambiarBase(fecha: string, baseNueva: number, bolsillo: Bolsillo) {
-  await db.transaction('rw', db.config, db.movs, async () => {
-    const cfg = (await db.config.get(1))!
-    await db.movs.bulkAdd(movimientosBase(fecha, cfg.caja, baseNueva, bolsillo))
-    await db.config.update(1, { caja: baseNueva })
-  })
-}
+/** La base de vuelto solo es un número informativo: no mueve plata de ningún bolsillo. */
+export const guardarBase = (base: number) => db.config.update(1, { caja: base })
 
 export const moverEntreCuentas = (fecha: string, de: Cuenta, a: Cuenta, monto: number, nota: string) => db.movs.bulkAdd(movimientosEntreCuentas(fecha, de, a, monto, nota))
 export const retirarDidi = (fecha: string, monto: number) => db.movs.bulkAdd(movimientosRetiro(fecha, monto))

@@ -106,14 +106,11 @@ export function movimientosAjuste(fecha: string, cuenta: Cuenta, saldoActual: nu
 }
 
 /**
- * Cambiar la base de vuelto (la caja de cambio). Subirla saca esa plata de un bolsillo; bajarla la devuelve.
- * Así cuentas = bolsillos + base sigue cuadrando.
+ * La base de vuelto es plata tuya que sigue dentro del Efectivo: no se resta de ningún bolsillo y no afecta el cuadre.
+ * Migración de la versión anterior, que la restaba de un bolsillo: si lo que falta en los bolsillos es EXACTAMENTE la base,
+ * devuelve cuánto hay que reponer (la base); si no, 0 y no se toca nada.
  */
-export function movimientosBase(fecha: string, baseActual: number, baseNueva: number, bolsillo: Bolsillo): Mov[] {
-  const dif = baseNueva - baseActual
-  if (dif === 0) return []
-  return [{ fecha, tipo: 'base', bolsillo, monto: -dif, nota: dif > 0 ? 'Base de vuelto: la separo' : 'Base de vuelto: la devuelvo' }]
-}
+export const baseARestituir = (diferenciaCuadre: number, base: number) => (base > 0 && diferenciaCuadre === base ? base : 0)
 
 /** Mover plata entre cuentas reales (ej. consigné de Efectivo a Nequi). No toca los bolsillos. */
 export function movimientosEntreCuentas(fecha: string, de: Cuenta, a: Cuenta, monto: number, nota: string): Mov[] {
@@ -143,7 +140,7 @@ export function saldos(movs: Mov[], inicialCuentas: Record<Cuenta, number>, inic
 
 const suma = (o: Record<string, number>) => Object.values(o).reduce((a, b) => a + b, 0)
 
-/** diferencia = cuentas - (bolsillos + caja de cambio). 0 = todo cuadra. */
+/** diferencia = cuentas - (bolsillos + caja). 0 = todo cuadra. La app pasa caja = 0: la base de vuelto es plata tuya dentro del Efectivo. */
 export function cuadre(cuentas: Record<Cuenta, number>, bolsillos: Record<Bolsillo, number>, caja: number) {
   const diferencia = suma(cuentas) - (suma(bolsillos) + caja)
   return { totalCuentas: suma(cuentas), totalBolsillos: suma(bolsillos), diferencia, cuadra: diferencia === 0 }

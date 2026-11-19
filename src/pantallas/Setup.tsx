@@ -10,7 +10,7 @@ export default function Setup({ config }: { config: Config }) {
   const sumaP = sumaPorcentajes(c.porcentajes)
   const totalCuentas = CUENTAS.reduce((a, k) => a + c.inicialCuentas[k], 0)
   const totalBols = BOLSILLOS.reduce((a, k) => a + c.inicialBolsillos[k], 0)
-  const dif = totalCuentas - totalBols - c.caja
+  const dif = totalCuentas - totalBols
   const ok = sumaP === 100
 
   const guardar = async () => {
@@ -26,7 +26,7 @@ export default function Setup({ config }: { config: Config }) {
       <div className="card">
         <h2>1. ¿Dónde está tu plata hoy?</h2>
         {CUENTAS.map((k: Cuenta) => <div key={k}><label>{NOMBRE_CUENTA[k]}</label><Monto valor={c.inicialCuentas[k]} onChange={(n) => setC({ ...c, inicialCuentas: { ...c.inicialCuentas, [k]: n } })} /></div>)}
-        <label>Caja de cambio (monedas y billetes para dar vueltas; no es plata disponible)</label>
+        <label>Base de vuelto (la parte de tu efectivo que llevas para dar vueltos; ya cuenta dentro del Efectivo de arriba)</label>
         <Monto valor={c.caja} onChange={(n) => setC({ ...c, caja: n })} />
       </div>
 
@@ -34,7 +34,7 @@ export default function Setup({ config }: { config: Config }) {
         <h2>2. ¿Cuánto hay en cada bolsillo?</h2>
         <p className="dim">Los bolsillos dividen esa plata. Si no sabes, déjalos en 0 y pon todo en Personal.</p>
         {BOLSILLOS.map((k: Bolsillo) => <div key={k}><label>{NOMBRE_BOLSILLO[k]}</label><Monto valor={c.inicialBolsillos[k]} onChange={(n) => setC({ ...c, inicialBolsillos: { ...c.inicialBolsillos, [k]: n } })} /></div>)}
-        <p className={dif === 0 ? 'okc' : 'warnc'}>{dif === 0 ? 'Cuentas y bolsillos cuadran' : `Diferencia: ${formatCOP(dif)} (cuentas − bolsillos − caja). Puedes guardar igual, pero la app te la va a mostrar.`}</p>
+        <p className={dif === 0 ? 'okc' : 'warnc'}>{dif === 0 ? 'Cuentas y bolsillos cuadran' : `Diferencia: ${formatCOP(dif)} (cuentas − bolsillos). Puedes guardar igual, pero la app te la va a mostrar.`}</p>
       </div>
 
       <div className="card">

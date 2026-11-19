@@ -52,7 +52,7 @@ export default function Inicio({ d, ir }: { d: Datos; ir: (t: 'registrar' | 'rap
   const mesIni = hoy.slice(0, 8) + '01'
   const mesAntFin = sumarDias(mesIni, -1)
   const mes = rango(mesIni, hoy), mesAnt = rango(mesAntFin.slice(0, 8) + '01', mesAntFin)
-  const cu = cuadre(d.cuentas, d.bolsillos, d.config.caja)
+  const cu = cuadre(d.cuentas, d.bolsillos, 0)
   const alertas = rec.filter((r) => r.estado === 'vencido' || r.estado === 'pronto')
   const hoyHecho = dias.some((x) => x.fecha === hoy)
   const ultimo = ultimoRespaldo()
@@ -95,7 +95,7 @@ export default function Inicio({ d, ir }: { d: Datos; ir: (t: 'registrar' | 'rap
         {CUENTAS.map((k) => <div className="item" key={k}><span>{NOMBRE_CUENTA[k]}</span><b><Cop n={d.cuentas[k]} /></b></div>)}
         {d.config.caja > 0 && <>
           <div className="item dim"><span>Base de vuelto (en el efectivo)</span><span>{formatCOP(d.config.caja)}</span></div>
-          <div className="item"><span>Efectivo tuyo (sin la base)</span><b><Cop n={d.cuentas.efectivo - d.config.caja} /></b></div>
+          <div className="item"><span>Efectivo libre (sin la base)</span><b><Cop n={d.cuentas.efectivo - d.config.caja} /></b></div>
         </>}
       </div>
 

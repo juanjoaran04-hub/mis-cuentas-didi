@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   asignarMetas, ahorroSemanalMetas, BOLSILLOS, cuadre, diasDeTrabajo, movimientosDia, movimientosExtra, movimientosRetiro,
   movimientosTraslado, parseCOP, proyeccion, recordatorios, repartir, resumenDia, saldos, CFG_MOTO, type Reparto,
-  statsPeriodo, variacion, producidoPorDia, diaRapido, movimientosEntreCuentas, movimientosGastoSuelto, movimientosAjuste, movimientosBase,
+  statsPeriodo, variacion, producidoPorDia, diaRapido, movimientosEntreCuentas, movimientosGastoSuelto, movimientosAjuste, baseARestituir,
 } from './dinero'
 
 const cfg: Reparto = { porcentajes: { metas: 40, moto: 20, personal: 25, imprevistos: 15 }, topeImprevistos: 100000 }
@@ -117,16 +117,18 @@ describe('gasto suelto, ajuste y base de vuelto', () => {
     expect(saldos(movimientosAjuste('2026-01-01', 'nequi', 100000, 120000, 'personal', ''), ini, iniB).cuentas.nequi).toBe(120000)
     expect(movimientosAjuste('2026-01-01', 'nequi', 5, 5, 'personal', '')).toEqual([])
   })
-  it('base de vuelto: subirla la saca de un bolsillo y el cuadre se mantiene', () => {
-    const movs = movimientosBase('2026-01-01', 0, 50000, 'personal')
-    const { cuentas, bolsillos } = saldos(movs, ini, iniB)
-    expect(bolsillos.personal).toBe(50000)
-    expect(cuadre(cuentas, bolsillos, 50000).cuadra).toBe(true)
+  it('base de vuelto: no es un movimiento; cuentas y bolsillos cuadran sin tocarla (caja = 0)', () => {
+    expect(cuadre(ini, iniB, 0).cuadra).toBe(true)
   })
-  it('base de vuelto: bajarla la devuelve; igual no hace nada', () => {
-    const { cuentas, bolsillos } = saldos(movimientosBase('2026-01-01', 50000, 20000, 'personal'), ini, { ...iniB, personal: 50000 })
-    expect(bolsillos.personal).toBe(80000); expect(cuadre(cuentas, bolsillos, 20000).cuadra).toBe(true)
-    expect(movimientosBase('2026-01-01', 5, 5, 'personal')).toEqual([])
+  it('migración de la base: repone solo si lo que falta es exactamente la base', () => {
+    expect(baseARestituir(50000, 50000)).toBe(50000)
+    expect(baseARestituir(0, 50000)).toBe(0)
+    expect(baseARestituir(30000, 50000)).toBe(0)
+    expect(baseARestituir(50000, 0)).toBe(0)
+  })
+  it('migración: al reponer la base en Personal vuelve a cuadrar', () => {
+    const { cuentas, bolsillos } = saldos([{ fecha: '2026-01-01', tipo: 'base', bolsillo: 'personal', monto: 50000 }], ini, { ...iniB, personal: 50000 })
+    expect(cuadre(cuentas, bolsillos, 0).cuadra).toBe(true)
   })
 })
 
