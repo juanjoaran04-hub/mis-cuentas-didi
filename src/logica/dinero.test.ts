@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   asignarMetas, ahorroSemanalMetas, BOLSILLOS, cuadre, diasDeTrabajo, movimientosDia, movimientosExtra, movimientosRetiro,
   movimientosTraslado, parseCOP, proyeccion, recordatorios, repartir, resumenDia, saldos, CFG_MOTO, type Reparto,
-  statsPeriodo, variacion, producidoPorDia, diaRapido, movimientosEntreCuentas,
+  statsPeriodo, variacion, producidoPorDia, diaRapido, movimientosEntreCuentas, movimientosGastoSuelto, movimientosAjuste, movimientosBase,
 } from './dinero'
 
 const cfg: Reparto = { porcentajes: { metas: 40, moto: 20, personal: 25, imprevistos: 15 }, topeImprevistos: 100000 }
@@ -92,6 +92,41 @@ describe('mover entre cuentas', () => {
   })
   it('sin nota genera una descripción', () => {
     expect(movimientosEntreCuentas('2026-01-01', 'efectivo', 'nequi', 1, '')[0].nota).toBe('Efectivo → Nequi')
+  })
+})
+
+describe('gasto suelto, ajuste y base de vuelto', () => {
+  const ini = { nequi: 100000, efectivo: 80000, didi: 0 }
+  const iniB = { ...ceroB, personal: 100000, metas: 80000 }
+  it('gasto suelto baja la cuenta y el bolsillo, y no es operativo', () => {
+    const { cuentas, bolsillos } = saldos(movimientosGastoSuelto('2026-01-01', 15000, 'efectivo', 'personal', 'almuerzo U', 'g:1'), ini, iniB)
+    expect(cuentas.efectivo).toBe(65000); expect(bolsillos.personal).toBe(85000)
+    expect(cuadre(cuentas, bolsillos, 0).cuadra).toBe(true)
+    expect(statsPeriodo([]).gastos).toBe(0) // no entra a los resúmenes de trabajo
+  })
+  it('gasto suelto desde Nequi con otro bolsillo', () => {
+    const { cuentas, bolsillos } = saldos(movimientosGastoSuelto('2026-01-01', 30000, 'nequi', 'metas', 'salida', 'g:2'), ini, iniB)
+    expect(cuentas.nequi).toBe(70000); expect(bolsillos.metas).toBe(50000)
+  })
+  it('ajuste: la cuenta queda en el saldo real y el bolsillo absorbe la diferencia', () => {
+    const { cuentas, bolsillos } = saldos(movimientosAjuste('2026-01-01', 'efectivo', 80000, 72000, 'personal', ''), ini, iniB)
+    expect(cuentas.efectivo).toBe(72000); expect(bolsillos.personal).toBe(92000)
+    expect(cuadre(cuentas, bolsillos, 0).cuadra).toBe(true)
+  })
+  it('ajuste hacia arriba y sin diferencia', () => {
+    expect(saldos(movimientosAjuste('2026-01-01', 'nequi', 100000, 120000, 'personal', ''), ini, iniB).cuentas.nequi).toBe(120000)
+    expect(movimientosAjuste('2026-01-01', 'nequi', 5, 5, 'personal', '')).toEqual([])
+  })
+  it('base de vuelto: subirla la saca de un bolsillo y el cuadre se mantiene', () => {
+    const movs = movimientosBase('2026-01-01', 0, 50000, 'personal')
+    const { cuentas, bolsillos } = saldos(movs, ini, iniB)
+    expect(bolsillos.personal).toBe(50000)
+    expect(cuadre(cuentas, bolsillos, 50000).cuadra).toBe(true)
+  })
+  it('base de vuelto: bajarla la devuelve; igual no hace nada', () => {
+    const { cuentas, bolsillos } = saldos(movimientosBase('2026-01-01', 50000, 20000, 'personal'), ini, { ...iniB, personal: 50000 })
+    expect(bolsillos.personal).toBe(80000); expect(cuadre(cuentas, bolsillos, 20000).cuadra).toBe(true)
+    expect(movimientosBase('2026-01-01', 5, 5, 'personal')).toEqual([])
   })
 })
 

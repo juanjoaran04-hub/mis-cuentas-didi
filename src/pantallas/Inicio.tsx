@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { CircleAlert, CircleCheck, HardDriveDownload, PenLine, Wrench, Zap } from 'lucide-react'
+import { CircleAlert, CircleCheck, HardDriveDownload, PenLine, Scale, ShoppingBag, Wrench, Zap } from 'lucide-react'
 import { db, ultimoRespaldo } from '../db'
 import { BOLSILLOS, CUENTAS, NOMBRE_BOLSILLO, NOMBRE_CUENTA, cuadre, formatCOP, hoyISO, producidoPorDia, statsPeriodo, sumarDias, variacion } from '../logica/dinero'
 import { Cop, TarjetaBolsillo } from '../tema'
@@ -42,7 +42,7 @@ function Periodo({ titulo, a, b }: { titulo: string; a: ReturnType<typeof statsP
   )
 }
 
-export default function Inicio({ d, ir }: { d: Datos; ir: (t: 'registrar' | 'rapido' | 'ajustes') => void }) {
+export default function Inicio({ d, ir }: { d: Datos; ir: (t: 'registrar' | 'rapido' | 'gasto' | 'cuentas' | 'ajustes') => void }) {
   const { filas } = useMetas(d)
   const { rec } = useRecordatorios(d)
   const dias = useLiveQuery(() => db.dias.toArray(), [], [])
@@ -64,6 +64,10 @@ export default function Inicio({ d, ir }: { d: Datos; ir: (t: 'registrar' | 'rap
       <h1>Mis Cuentas</h1>
       <button className="full hero" style={{ marginTop: 0 }} onClick={() => ir('registrar')}><PenLine size={24} aria-hidden />{hoyHecho ? 'Editar el día de hoy' : 'Registrar día'}</button>
       <button className="full hero sec" style={{ marginTop: 0 }} onClick={() => ir('rapido')}><Zap size={24} aria-hidden />Registro rápido</button>
+      <div className="row" style={{ marginBottom: 12 }}>
+        <button className="sec" style={{ minHeight: 56 }} onClick={() => ir('gasto')}><ShoppingBag size={20} aria-hidden />Gasto personal</button>
+        <button className="sec" style={{ minHeight: 56 }} onClick={() => ir('cuentas')}><Scale size={20} aria-hidden />Ajustar cuentas</button>
+      </div>
       {pedirRespaldo && <div className="alert warn"><HardDriveDownload size={20} aria-hidden /><span>{diasSinRespaldo === null ? 'Nunca has hecho un respaldo.' : `Hace ${diasSinRespaldo} días no haces respaldo.`} <button className="sm" onClick={() => ir('ajustes')}>Hacer respaldo</button></span></div>}
       {!cu.cuadra && <div className="alert bad"><CircleAlert size={20} aria-hidden /><span>Cuentas y bolsillos no cuadran: {formatCOP(cu.diferencia)}. Mira la pestaña Cuentas.</span></div>}
       {alertas.map((r) => <div key={r.nombre} className={'alert ' + (r.estado === 'vencido' ? 'bad' : 'warn')}><Wrench size={20} aria-hidden />{r.nombre}: {r.estado === 'vencido' ? 'ya toca' : 'pronto'}</div>)}
@@ -89,7 +93,10 @@ export default function Inicio({ d, ir }: { d: Datos; ir: (t: 'registrar' | 'rap
       <div className="card">
         <h2>Cuentas</h2>
         {CUENTAS.map((k) => <div className="item" key={k}><span>{NOMBRE_CUENTA[k]}</span><b><Cop n={d.cuentas[k]} /></b></div>)}
-        <div className="item dim"><span>Caja de cambio (aparte)</span><span>{formatCOP(d.config.caja)}</span></div>
+        {d.config.caja > 0 && <>
+          <div className="item dim"><span>Base de vuelto (en el efectivo)</span><span>{formatCOP(d.config.caja)}</span></div>
+          <div className="item"><span>Efectivo tuyo (sin la base)</span><b><Cop n={d.cuentas.efectivo - d.config.caja} /></b></div>
+        </>}
       </div>
 
       <div className="card"><h2>Producido, últimos 14 días</h2><Grafica datos={producidoPorDia(dias, hoy, 14)} /></div>

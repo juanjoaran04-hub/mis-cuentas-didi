@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import {
-  CFG_MOTO, movimientosDia, movimientosEntreCuentas, movimientosExtra, movimientosRetiro, movimientosTraslado, saldos,
+  CFG_MOTO, movimientosAjuste, movimientosBase, movimientosDia, movimientosEntreCuentas, movimientosGastoSuelto, movimientosExtra, movimientosRetiro, movimientosTraslado, saldos,
   type Bolsillo, type CfgMoto, type Cuenta, type Gasto, type Mant, type Meta, type Mov, type Origen,
 } from './logica/dinero'
 
@@ -117,6 +117,22 @@ export async function importarTodo(texto: string) {
 }
 
 export const trasladar = (fecha: string, de: Bolsillo, a: Bolsillo, monto: number, nota: string) => db.movs.bulkAdd(movimientosTraslado(fecha, de, a, monto, nota))
+export const guardarGastoSuelto = (fecha: string, monto: number, cuenta: 'efectivo' | 'nequi', bolsillo: Bolsillo, nota: string) =>
+  db.movs.bulkAdd(movimientosGastoSuelto(fecha, monto, cuenta, bolsillo, nota, 'gasto:' + Date.now()))
+export const borrarPorRef = (ref: string) => db.movs.where('ref').equals(ref).delete()
+
+export const ajustarCuenta = (fecha: string, cuenta: Cuenta, saldoActual: number, saldoReal: number, bolsillo: Bolsillo, nota: string) =>
+  db.movs.bulkAdd(movimientosAjuste(fecha, cuenta, saldoActual, saldoReal, bolsillo, nota))
+
+/** Cambia la base de vuelto y mueve la diferencia desde/hacia un bolsillo, en una sola operación. */
+export async function cambiarBase(fecha: string, baseNueva: number, bolsillo: Bolsillo) {
+  await db.transaction('rw', db.config, db.movs, async () => {
+    const cfg = (await db.config.get(1))!
+    await db.movs.bulkAdd(movimientosBase(fecha, cfg.caja, baseNueva, bolsillo))
+    await db.config.update(1, { caja: baseNueva })
+  })
+}
+
 export const moverEntreCuentas = (fecha: string, de: Cuenta, a: Cuenta, monto: number, nota: string) => db.movs.bulkAdd(movimientosEntreCuentas(fecha, de, a, monto, nota))
 export const retirarDidi = (fecha: string, monto: number) => db.movs.bulkAdd(movimientosRetiro(fecha, monto))
 

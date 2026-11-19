@@ -58,7 +58,7 @@ export default function Ajustes({ d }: { d: Datos }) {
         {BOLSILLOS.map((k) => <div key={k}><label>{NOMBRE_BOLSILLO[k]} (%)</label><input inputMode="numeric" value={c.porcentajes[k]} onChange={(e) => setC({ ...c, porcentajes: { ...c.porcentajes, [k]: num(e.target.value) } })} /></div>)}
         <p className={ok ? 'okc' : 'neg'}>Suma: {sumaPorcentajes(c.porcentajes)}%</p>
         <label>Tope de Imprevistos</label><Monto valor={c.topeImprevistos} onChange={(n) => setC({ ...c, topeImprevistos: n })} />
-        <label>Caja de cambio</label><Monto valor={c.caja} onChange={(n) => setC({ ...c, caja: n })} />
+        <p className="dim">La base de vuelto se cambia en la pestaña Cuentas.</p>
         <p className="dim">Los cambios de % valen para los días que guardes desde ahora.</p>
       </div>
 
@@ -69,7 +69,7 @@ export default function Ajustes({ d }: { d: Datos }) {
         <label>Kit de arrastre: revisar desde (km)</label><Monto valor={c.moto.arrastreMin} onChange={(n) => setC({ ...c, moto: { ...c.moto, arrastreMin: n } })} />
         <label>Kit de arrastre: cambiar a más tardar (km)</label><Monto valor={c.moto.arrastreMax} onChange={(n) => setC({ ...c, moto: { ...c.moto, arrastreMax: n } })} />
       </div>
-      <button className="full" disabled={!ok} onClick={() => db.config.put(c)}>Guardar ajustes</button>
+      <button className="full" disabled={!ok} onClick={() => db.config.update(1, { porcentajes: c.porcentajes, topeImprevistos: c.topeImprevistos, moto: c.moto })}>Guardar ajustes</button>
 
       <div className="card" style={{ marginTop: 16 }}>
         <h2>Categorías de gasto</h2>

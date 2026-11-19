@@ -6,13 +6,14 @@ import Setup from './pantallas/Setup'
 import Inicio from './pantallas/Inicio'
 import Registrar from './pantallas/Registrar'
 import RegistroRapido from './pantallas/RegistroRapido'
+import Gasto from './pantallas/Gasto'
 import Cuentas from './pantallas/Cuentas'
 import Metas from './pantallas/Metas'
 import Moto from './pantallas/Moto'
 import Ajustes from './pantallas/Ajustes'
 
 const TABS = [['inicio', House, 'Inicio'], ['registrar', PenLine, 'Registrar'], ['cuentas', Wallet, 'Cuentas'], ['metas', Target, 'Metas'], ['moto', Bike, 'Moto'], ['ajustes', Settings, 'Ajustes']] as const
-type Tab = (typeof TABS)[number][0] | 'rapido' // 'rapido' no tiene botón abajo: se abre desde Inicio
+type Tab = (typeof TABS)[number][0] | 'rapido' | 'gasto' // 'rapido' no tiene botón abajo: se abre desde Inicio
 
 export default function App() {
   const [listo, setListo] = useState(false)
@@ -29,6 +30,7 @@ export default function App() {
         {tab === 'inicio' && <Inicio d={datos} ir={setTab} />}
         {tab === 'registrar' && <Registrar d={datos} />}
         {tab === 'rapido' && <RegistroRapido d={datos} volver={() => setTab('inicio')} />}
+        {tab === 'gasto' && <Gasto d={datos} volver={() => setTab('inicio')} />}
         {tab === 'cuentas' && <Cuentas d={datos} />}
         {tab === 'metas' && <Metas d={datos} />}
         {tab === 'moto' && <Moto d={datos} />}

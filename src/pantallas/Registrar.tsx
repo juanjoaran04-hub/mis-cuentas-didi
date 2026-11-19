@@ -35,7 +35,7 @@ export default function Registrar({ d }: { d: Datos }) {
       <div className="card">
         <label>Fecha</label><input type="date" value={dia.fecha} max={hoyISO()} onChange={(e) => e.target.value && setDia({ ...nuevoDia(e.target.value) })} />
         <div className="grid2">
-          <div><label>Efectivo</label><Monto valor={dia.efectivo} onChange={(n) => setDia({ ...dia, efectivo: n })} /></div>
+          <div><label>Efectivo (sin la base)</label><Monto valor={dia.efectivo} onChange={(n) => setDia({ ...dia, efectivo: n })} /></div>
           <div><label>Por la app</label><Monto valor={dia.app} onChange={(n) => setDia({ ...dia, app: n })} /></div>
           <div><label>Viajes</label><input inputMode="numeric" value={dia.viajes || ''} onChange={(e) => setDia({ ...dia, viajes: num(e.target.value) })} /></div>
           <div><label>Horas</label><input inputMode="decimal" value={dia.horas || ''} onChange={(e) => setDia({ ...dia, horas: num(e.target.value) })} /></div>

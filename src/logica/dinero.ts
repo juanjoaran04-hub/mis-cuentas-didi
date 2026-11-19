@@ -86,6 +86,35 @@ export function movimientosTraslado(fecha: string, de: Bolsillo, a: Bolsillo, mo
   ]
 }
 
+/** Gasto fuera del turno (comida en la U, una salida): sale de una cuenta y de un bolsillo (Personal por defecto). No es gasto operativo. */
+export function movimientosGastoSuelto(fecha: string, monto: number, cuenta: 'efectivo' | 'nequi', bolsillo: Bolsillo, nota: string, ref: string): Mov[] {
+  return [
+    { fecha, tipo: 'gasto-suelto', cuenta, monto: -monto, nota, ref },
+    { fecha, tipo: 'gasto-suelto', bolsillo, monto: -monto, nota, ref },
+  ]
+}
+
+/** Ajusta una cuenta al saldo real que cuentas. La diferencia se carga/abona a un bolsillo para que todo siga cuadrando. */
+export function movimientosAjuste(fecha: string, cuenta: Cuenta, saldoActual: number, saldoReal: number, bolsillo: Bolsillo, nota: string): Mov[] {
+  const dif = saldoReal - saldoActual
+  if (dif === 0) return []
+  const n = nota || `Ajuste ${NOMBRE_CUENTA[cuenta]}`
+  return [
+    { fecha, tipo: 'ajuste', cuenta, monto: dif, nota: n },
+    { fecha, tipo: 'ajuste', bolsillo, monto: dif, nota: n },
+  ]
+}
+
+/**
+ * Cambiar la base de vuelto (la caja de cambio). Subirla saca esa plata de un bolsillo; bajarla la devuelve.
+ * Así cuentas = bolsillos + base sigue cuadrando.
+ */
+export function movimientosBase(fecha: string, baseActual: number, baseNueva: number, bolsillo: Bolsillo): Mov[] {
+  const dif = baseNueva - baseActual
+  if (dif === 0) return []
+  return [{ fecha, tipo: 'base', bolsillo, monto: -dif, nota: dif > 0 ? 'Base de vuelto: la separo' : 'Base de vuelto: la devuelvo' }]
+}
+
 /** Mover plata entre cuentas reales (ej. consigné de Efectivo a Nequi). No toca los bolsillos. */
 export function movimientosEntreCuentas(fecha: string, de: Cuenta, a: Cuenta, monto: number, nota: string): Mov[] {
   const n = nota || `${NOMBRE_CUENTA[de]} → ${NOMBRE_CUENTA[a]}`

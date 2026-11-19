@@ -25,7 +25,7 @@ export default function RegistroRapido({ d, volver }: { d: Datos; volver: () => 
       <div className="card">
         <label>Fecha</label><input type="date" value={f.fecha} max={hoyISO()} onChange={(e) => e.target.value && setF({ ...f, fecha: e.target.value })} />
         <p className="dim" style={{ marginBottom: 0 }}>¿Dónde quedó lo limpio? Puedes repartirlo entre varias cuentas.</p>
-        {(['efectivo', 'nequi', 'didi'] as const).map((c) => <div key={c}><label>{NOMBRE_CUENTA[c]}</label>
+        {(['efectivo', 'nequi', 'didi'] as const).map((c) => <div key={c}><label>{NOMBRE_CUENTA[c]}{c === 'efectivo' && ' (sin la base de vuelto)'}</label>
           <Monto valor={f[c]} autoFocus={c === 'efectivo'} onChange={(n) => setF({ ...f, [c]: n })} /></div>)}
         <p className="big pos">Limpio del día: {formatCOP(r.limpio)}</p>
         <div className="grid2">
